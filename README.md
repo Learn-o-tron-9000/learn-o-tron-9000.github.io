@@ -1,4 +1,4 @@
-# learnotron.github.io
+# learn-o-tron-9000.github.io
 
 Made for an IT 161 class.
 
