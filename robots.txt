@@ -1,0 +1,7 @@
+# robots.txt for https://learn-o-tron-9000.github.io/
+# Allow all search engines to crawl and index the entire site.
+User-agent: *
+Allow: /
+
+# Point crawlers to the sitemap for efficient discovery.
+Sitemap: https://learn-o-tron-9000.github.io/sitemap.xml
