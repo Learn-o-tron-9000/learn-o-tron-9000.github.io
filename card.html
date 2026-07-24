@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A responsive article card built with modern CSS: oklch() color, :root custom properties, clamp() fluid type, and text-box trim.">
+  <title>Responsive Article Card — Modern CSS Demo</title>
+
+  <!-- Apply the saved theme before first paint to avoid a flash of the wrong
+       theme. Kept tiny and inline for that reason. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("theme");
+        if (saved === "dark" || saved === "light") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="card.css">
+</head>
+<body>
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false">
+    <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+    <span class="theme-toggle__label">Dark mode</span>
+  </button>
+
+  <main>
+    <h1 class="visually-hidden">Featured article</h1>
+
+    <article class="card">
+      <img class="card__media" src="card-image.svg" width="800" height="450"
+           alt="Abstract illustration of a glowing spatial-computing grid with orbiting spheres.">
+
+      <div class="card__body">
+        <span class="card__badge">Virtual Reality</span>
+        <h2 class="card__title">Designing Immersive Worlds for Spatial Computing</h2>
+        <p class="card__desc">
+          How the next generation of VR tooling is collapsing the gap between
+          3D modeling and real-time interaction — and what it means for creators.
+        </p>
+        <a class="card__button" href="#">
+          Read Article
+          <span class="arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = btn.querySelector(".theme-toggle__icon");
+      var label = btn.querySelector(".theme-toggle__label");
+
+      function isDark() {
+        var attr = root.getAttribute("data-theme");
+        if (attr) return attr === "dark";
+        return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      }
+
+      function sync() {
+        var dark = isDark();
+        btn.setAttribute("aria-pressed", String(dark));
+        icon.textContent = dark ? "☀️" : "🌙";
+        label.textContent = dark ? "Light mode" : "Dark mode";
+      }
+
+      btn.addEventListener("click", function () {
+        var next = isDark() ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        sync();
+      });
+
+      sync();
+    })();
+  </script>
+
+  <style>
+    .visually-hidden {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img"
+     aria-label="Abstract illustration of a glowing spatial-computing grid and orbiting spheres.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b1d6e"/>
+      <stop offset="0.55" stop-color="#4834a8"/>
+      <stop offset="1" stop-color="#6d4ed6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.32" r="0.6">
+      <stop offset="0" stop-color="#c9b6ff" stop-opacity="0.9"/>
+      <stop offset="0.4" stop-color="#9a7dff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#9a7dff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+
+  <!-- perspective grid -->
+  <g stroke="#ffffff" stroke-opacity="0.18" fill="none">
+    <path d="M0 330 L800 330"/>
+    <path d="M0 372 L800 372"/>
+    <path d="M0 420 L800 420"/>
+    <path d="M120 300 L-60 450"/>
+    <path d="M260 300 L180 450"/>
+    <path d="M400 300 L400 450"/>
+    <path d="M540 300 L620 450"/>
+    <path d="M680 300 L860 450"/>
+  </g>
+
+  <!-- orbiting spheres -->
+  <circle cx="560" cy="150" r="86" fill="#ffffff" fill-opacity="0.10"/>
+  <circle cx="560" cy="150" r="56" fill="#ffffff" fill-opacity="0.16"/>
+  <circle cx="560" cy="150" r="26" fill="#ffffff" fill-opacity="0.9"/>
+  <g stroke="#ffffff" stroke-opacity="0.5" fill="none" stroke-width="1.5">
+    <ellipse cx="560" cy="150" rx="120" ry="44" transform="rotate(-22 560 150)"/>
+    <ellipse cx="560" cy="150" rx="150" ry="58" transform="rotate(18 560 150)"/>
+  </g>
+  <circle cx="205" cy="120" r="10" fill="#ffffff" fill-opacity="0.85"/>
+  <circle cx="150" cy="220" r="6" fill="#ffffff" fill-opacity="0.6"/>
+  <circle cx="690" cy="250" r="7" fill="#ffffff" fill-opacity="0.7"/>
+</svg>
