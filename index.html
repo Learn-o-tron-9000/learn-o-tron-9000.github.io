@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aidan Kelly — IT161 Coursework</title>
+  <meta name="description" content="Index of Aidan Kelly's IT161 coursework: an accessible resume, a responsive card component, and a fluid magazine article template.">
+
+  <link rel="canonical" href="https://learn-o-tron-9000.github.io/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Aidan Kelly — IT161 Coursework">
+  <meta property="og:description" content="An index of coursework: accessible resume, responsive card component, and fluid article template.">
+  <meta property="og:url" content="https://learn-o-tron-9000.github.io/">
+  <meta property="og:image" content="https://learn-o-tron-9000.github.io/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://learn-o-tron-9000.github.io/og-image.png">
+
+  <style>
+    :root {
+      --font: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+      --bg:            oklch(0.97 0.006 250);
+      --surface:       oklch(1 0 0);
+      --ink:           oklch(0.25 0.025 262);
+      --muted:         oklch(0.48 0.03 262);
+      --accent:        oklch(0.47 0.10 245);
+      --accent-dark:   oklch(0.38 0.09 248);
+      --border:        oklch(0.89 0.012 255);
+      --header-bg:     oklch(0.22 0.03 255);
+      --header-ink:    oklch(0.96 0.008 250);
+      --header-accent: oklch(0.80 0.07 245);
+      --shadow:        oklch(0.4 0.05 262 / 0.18);
+
+      --content-width: 52rem;
+      --radius: 10px;
+      --space: 1.5rem;
+
+      --transition: 0.2s ease;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:          oklch(0.17 0.02 262);
+        --surface:     oklch(0.23 0.025 262);
+        --ink:         oklch(0.95 0.012 255);
+        --muted:       oklch(0.72 0.02 255);
+        --accent:      oklch(0.80 0.07 245);
+        --accent-dark: oklch(0.85 0.06 245);
+        --border:      oklch(0.34 0.02 262);
+        --header-bg:   oklch(0.15 0.02 262);
+        --shadow:      oklch(0 0 0 / 0.45);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      line-height: 1.6;
+      color: var(--ink);
+      background-color: var(--bg);
+    }
+
+    a { color: var(--accent); }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+    /* --- Header --- */
+    .site-header {
+      background-color: var(--header-bg);
+      color: var(--header-ink);
+      text-align: center;
+      padding: clamp(2.5rem, 7vw, 4rem) var(--space);
+    }
+    .site-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.9rem, 1.3rem + 2.6vw, 2.75rem);
+      letter-spacing: 0.01em;
+    }
+    .site-header p {
+      margin: 0;
+      font-size: clamp(1rem, 0.9rem + 0.4vw, 1.2rem);
+      color: var(--header-accent);
+    }
+
+    /* --- Main --- */
+    main {
+      max-width: var(--content-width);
+      margin-inline: auto;
+      padding: clamp(2rem, 5vw, 3rem) var(--space);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(2rem, 5vw, 3rem);
+    }
+
+    .week {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: clamp(1.5rem, 4vw, 2rem);
+    }
+    .week__heading {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.75rem;
+      margin: 0 0 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .week__heading h2 {
+      margin: 0;
+      font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.6rem);
+      color: var(--accent-dark);
+    }
+    .week__heading span {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    /* --- Card grid --- */
+    .card-grid {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+      gap: var(--space);
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 0.4rem;
+      padding: 1.25rem;
+      text-decoration: none;
+      color: inherit;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+    .card:hover, .card:focus-visible {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: 0 12px 28px -14px var(--shadow);
+      outline: none;
+    }
+    .card__badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .card__title {
+      margin: 0;
+      font-size: 1.15rem;
+      color: var(--ink);
+    }
+    .card__desc {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .card__cta {
+      margin-top: auto;
+      padding-top: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .card:hover .card__cta .arrow { transform: translateX(3px); }
+    .card__cta .arrow { display: inline-block; transition: transform var(--transition); }
+
+    /* --- Footer --- */
+    .site-footer {
+      background-color: var(--header-bg);
+      color: var(--header-ink);
+      text-align: center;
+      padding: var(--space);
+    }
+    .site-footer p { margin: 0; }
+    .site-footer a { color: var(--header-accent); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card { transition: none; }
+      .card:hover, .card:focus-visible { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Aidan Kelly</h1>
+    <p>IT161 · Web Development Coursework</p>
+  </header>
+
+  <main>
+    <section class="week" aria-labelledby="week01-heading">
+      <div class="week__heading">
+        <h2 id="week01-heading">Week 01</h2>
+        <span>Semantic HTML &amp; accessibility</span>
+      </div>
+      <ul class="card-grid">
+        <li>
+          <a class="card" href="week01/index.html">
+            <span class="card__badge">Résumé</span>
+            <h3 class="card__title">Aidan Kelly — Software Developer</h3>
+            <p class="card__desc">An accessible resume built with strict semantic HTML, a responsive type scale, and WCAG-checked contrast.</p>
+            <span class="card__cta">View page <span class="arrow" aria-hidden="true">→</span></span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="week" aria-labelledby="week02-heading">
+      <div class="week__heading">
+        <h2 id="week02-heading">Week 02</h2>
+        <span>Modern CSS: oklch, clamp &amp; text-box</span>
+      </div>
+      <ul class="card-grid">
+        <li>
+          <a class="card" href="week02/card.html">
+            <span class="card__badge">Component</span>
+            <h3 class="card__title">Responsive Article Card</h3>
+            <p class="card__desc">A card component using oklch() color, clamp() fluid type, text-box trimming, and a light/dark toggle.</p>
+            <span class="card__cta">View page <span class="arrow" aria-hidden="true">→</span></span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="week02/article-template.html">
+            <span class="card__badge">Layout</span>
+            <h3 class="card__title">The Architecture of Fluid Layouts</h3>
+            <p class="card__desc">A magazine article template with a fluid type scale, a ch-based reading measure, and optical heading trimming.</p>
+            <span class="card__cta">View page <span class="arrow" aria-hidden="true">→</span></span>
+          </a>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© <time datetime="2026">2026</time> Aidan Kelly · <a href="mailto:aidank2001@gmail.com">aidank2001@gmail.com</a></p>
+  </footer>
+</body>
+</html>
