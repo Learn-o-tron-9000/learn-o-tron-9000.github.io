@@ -1,0 +1,176 @@
+/* ==========================================================================
+   Week 4 Lab: Media-Query-Free Responsive Grid
+   Design tokens copied from week04/dashboard-grid.css
+   ========================================================================== */
+
+/* --- Design tokens (all colors in oklch) ---------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* Light palette (default) */
+  --bg:            oklch(0.97 0.012 265);
+  --surface:       oklch(1 0 0);
+  --text:          oklch(0.26 0.03 265);
+  --text-muted:    oklch(0.52 0.03 265);
+  --border:        oklch(0.90 0.015 265);
+  --accent:        oklch(0.55 0.19 280);
+  --on-accent:     oklch(0.99 0.01 280);
+  --shadow:        oklch(0.55 0.05 265 / 0.18);
+
+  /* Spacing scale, all relative (rem) */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1.5rem;
+  --space-lg: 3rem;
+
+  --radius: 1rem;
+  --transition: 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        oklch(0.19 0.02 265);
+    --surface:   oklch(0.24 0.028 265);
+    --text:      oklch(0.95 0.012 265);
+    --text-muted: oklch(0.72 0.02 265);
+    --border:    oklch(0.32 0.03 265);
+    --accent:    oklch(0.72 0.16 280);
+    --on-accent: oklch(0.20 0.04 280);
+    --shadow:    oklch(0 0 0 / 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:        oklch(0.19 0.02 265);
+  --surface:   oklch(0.24 0.028 265);
+  --text:      oklch(0.95 0.012 265);
+  --text-muted: oklch(0.72 0.02 265);
+  --border:    oklch(0.32 0.03 265);
+  --accent:    oklch(0.72 0.16 280);
+  --on-accent: oklch(0.20 0.04 280);
+  --shadow:    oklch(0 0 0 / 0.45);
+}
+
+/* --- Base ----------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 100%;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.gallery-wrapper {
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-block: var(--space-lg);
+  padding-inline: var(--space-md);
+}
+
+.gallery-header {
+  margin-block-end: var(--space-lg);
+  text-align: center;
+}
+
+.gallery-title {
+  font-size: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
+}
+
+.gallery-subtitle {
+  margin-block-start: 0.5rem;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+/* --- The Auto-Scaling Grid Container ---------------------------------------
+   No @media breakpoints govern column count. auto-fit generates as many
+   1fr tracks as fit the container at >= 300px each; when a track can no
+   longer hold 300px, the browser collapses it and reflows that card into
+   the row above, wrapping the grid on its own at any viewport width. */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+/* --- Media cards ------------------------------------------------------------
+   Flexbox stacks the visual above the body inside each card; align-items:
+   stretch (grid's default) already makes every card in a row match the
+   tallest one, and flex-direction: column lets .media-card__body use
+   margin-block-start: auto to pin itself to the bottom of that stretched
+   height regardless of how much description text a given card has. */
+.media-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px -18px var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.media-card:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 16px 32px -16px var(--shadow);
+}
+
+.media-card__visual {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background-color: var(--border);
+}
+
+.media-card__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+}
+
+.media-card__tag {
+  align-self: flex-start;
+  padding-block: 0.25em;
+  padding-inline: 0.75em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-accent);
+  background-color: var(--accent);
+  border-radius: 999px;
+}
+
+.media-card__heading {
+  font-size: 1.15rem;
+}
+
+.media-card__desc {
+  margin-block-start: auto;
+  padding-block-start: var(--space-xs);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* --- Respect reduced-motion ------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}
