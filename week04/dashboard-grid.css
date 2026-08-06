@@ -1,0 +1,301 @@
+/* ==========================================================================
+   Week 4 Lab: Dynamic Dashboard Grid
+   Design tokens copied from week03/dashboard-layout.css
+   ========================================================================== */
+
+/* --- Design tokens (all colors in oklch) ---------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* Light palette (default) */
+  --bg:            oklch(0.97 0.012 265);
+  --surface:       oklch(1 0 0);
+  --text:          oklch(0.26 0.03 265);
+  --text-muted:    oklch(0.52 0.03 265);
+  --border:        oklch(0.90 0.015 265);
+  --accent:        oklch(0.55 0.19 280);
+  --accent-hover:  oklch(0.48 0.19 280);
+  --on-accent:     oklch(0.99 0.01 280);
+  --shadow:        oklch(0.55 0.05 265 / 0.18);
+
+  --success:       oklch(0.55 0.15 145);
+  --danger:        oklch(0.58 0.20 25);
+  --warning:       oklch(0.72 0.15 70);
+
+  /* Spacing scale */
+  --space-sm: 0.75rem;
+  --space-md: 1.5rem;
+  --space-lg: 3rem;
+
+  --radius: 1rem;
+  --transition: 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           oklch(0.19 0.02 265);
+    --surface:      oklch(0.24 0.028 265);
+    --text:         oklch(0.95 0.012 265);
+    --text-muted:   oklch(0.72 0.02 265);
+    --border:       oklch(0.32 0.03 265);
+    --accent:       oklch(0.72 0.16 280);
+    --accent-hover: oklch(0.80 0.15 280);
+    --on-accent:    oklch(0.20 0.04 280);
+    --shadow:       oklch(0 0 0 / 0.45);
+
+    --success: oklch(0.72 0.16 145);
+    --danger:  oklch(0.72 0.18 25);
+    --warning: oklch(0.80 0.14 70);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:           oklch(0.19 0.02 265);
+  --surface:      oklch(0.24 0.028 265);
+  --text:         oklch(0.95 0.012 265);
+  --text-muted:   oklch(0.72 0.02 265);
+  --border:       oklch(0.32 0.03 265);
+  --accent:       oklch(0.72 0.16 280);
+  --accent-hover: oklch(0.80 0.15 280);
+  --on-accent:    oklch(0.20 0.04 280);
+  --shadow:       oklch(0 0 0 / 0.45);
+
+  --success: oklch(0.72 0.16 145);
+  --danger:  oklch(0.72 0.18 25);
+  --warning: oklch(0.80 0.14 70);
+}
+
+/* --- Base ----------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.dashboard-shell {
+  min-block-size: 100dvh;
+  padding-block: var(--space-md);
+  padding-inline: var(--space-md);
+}
+
+.dashboard-header {
+  padding-block-end: var(--space-md);
+}
+
+.dashboard-title {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+}
+
+.dashboard-subtitle {
+  color: var(--text-muted);
+  margin-block-start: 0.25rem;
+}
+
+/* --- The Master Dashboard Grid ---------------------------------------------
+   Explicit tracks: 4 columns and 3 rows, named via grid-template-areas.
+   Every cell in the template is claimed by a card's grid-area, so no
+   implicit tracks form on desktop — implicit rows/columns only appear if
+   an item's grid-area is misspelled or a card is added without a matching
+   area, in which case the browser invents an extra auto-sized track (using
+   grid-auto-rows/grid-auto-columns, both left at their `auto` default here)
+   to hold the overflow content instead of dropping it. */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, minmax(8rem, auto));
+  grid-template-areas:
+    "chart  chart  stat-a feed"
+    "chart  chart  stat-b feed"
+    "status status status feed";
+  gap: var(--space-md);
+}
+
+/* Below this width the four-column frame no longer has room to breathe,
+   so every card collapses into a single stacked column in source order. */
+@media (max-width: 60rem) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "chart"
+      "stat-a"
+      "stat-b"
+      "status"
+      "feed";
+  }
+}
+
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-block: var(--space-md);
+  padding-inline: var(--space-md);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px -18px var(--shadow);
+}
+
+.dash-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.dash-card__header h3 {
+  font-size: 1.05rem;
+}
+
+/* --- Card 1: chart, spans 2 columns x 2 rows -------------------------------- */
+.card-chart {
+  grid-area: chart;
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+.placeholder-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  padding-block: var(--space-sm);
+  padding-inline: var(--space-sm);
+  background-color: var(--bg);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.bar-chart-mock {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 6rem;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent) 0 8%,
+    transparent 8% 16%
+  );
+  background-position: bottom;
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  opacity: 0.7;
+}
+
+/* --- Cards 2 & 3: quick stats, compound alignment inside a nested grid ------
+   Each stat card is its own single-cell grid so align-content can center the
+   label/number/trend stack vertically while justify-items pins every line
+   to the start edge — independent axes, set at once, regardless of how much
+   taller the chart/feed cards make this row. */
+.card-stat-a,
+.card-stat-b {
+  grid-area: stat-a;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.35rem;
+}
+
+.card-stat-b {
+  grid-area: stat-b;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.stat-number {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  font-weight: 700;
+}
+
+.stat-trend {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.trend--up {
+  color: var(--success);
+}
+
+.trend--down {
+  color: var(--danger);
+}
+
+/* --- Card 4: feed, spans all 3 rows down the right side --------------------- */
+.card-feed {
+  grid-area: feed;
+}
+
+.activity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow-block: auto;
+}
+
+.activity-list li {
+  padding-block-end: var(--space-sm);
+  border-block-end: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.activity-list li:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+}
+
+.activity-list strong {
+  color: var(--text);
+  margin-inline-end: 0.4rem;
+}
+
+/* --- Card 5: status, stretches wide across the bottom ----------------------- */
+.card-status {
+  grid-area: status;
+}
+
+.status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.pill {
+  padding-block: 0.35rem;
+  padding-inline: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.pill--online {
+  color: var(--success);
+  background-color: color-mix(in oklch, var(--success) 15%, var(--surface));
+}
+
+.pill--degraded {
+  color: var(--warning);
+  background-color: color-mix(in oklch, var(--warning) 20%, var(--surface));
+}
+
+/* --- Respect reduced-motion ------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}
