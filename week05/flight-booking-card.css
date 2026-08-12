@@ -1,0 +1,162 @@
+@layer reset, base, components;
+
+@layer reset {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer base {
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: oklch(0.28 0.02 262);
+    background-color: oklch(0.96 0.005 250);
+    padding: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .global-header {
+    max-width: 40rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .global-title {
+    font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+    margin-block-end: 0.5rem;
+  }
+
+  .divider {
+    max-width: 40rem;
+    margin: clamp(1.5rem, 4vw, 2.5rem) auto;
+    border: none;
+    border-top: 1px solid oklch(0.85 0.01 255);
+  }
+
+  .component-sandbox {
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+
+  .btn {
+    font: inherit;
+    font-weight: 600;
+    color: oklch(1 0 0);
+    background-color: oklch(0.45 0.03 262);
+    border: 1px solid oklch(0.45 0.03 262);
+    border-radius: 6px;
+    padding: 0.65rem 1.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: oklch(0.35 0.03 262);
+    }
+
+    &:focus-visible {
+      outline: 2px solid oklch(0.45 0.03 262);
+      outline-offset: 2px;
+    }
+  }
+}
+
+@layer components {
+  .booking-card {
+    background-color: oklch(1 0 0);
+    border: 1px solid oklch(0.88 0.01 255);
+    border-radius: 12px;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 12px 28px -18px oklch(0.4 0.05 262 / 0.35);
+
+    & .booking-card__header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    & .booking-card__title {
+      font-size: 1.2rem;
+      color: oklch(0.25 0.02 262);
+    }
+
+    & .booking-card__badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: oklch(0.5 0.14 165);
+      background-color: oklch(0.94 0.05 165);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      white-space: nowrap;
+    }
+
+    & .booking-card__route {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    & .route-node {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+
+      &__code {
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      &__time {
+        font-size: 0.85rem;
+        color: oklch(0.5 0.02 262);
+      }
+    }
+
+    & .route-connector {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      color: oklch(0.5 0.02 262);
+
+      & .connector-line {
+        width: 100%;
+        height: 2px;
+        background-color: oklch(0.85 0.01 255);
+      }
+
+      & .connector-duration {
+        font-size: 0.78rem;
+        white-space: nowrap;
+      }
+    }
+
+    & .booking-card__footer {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    & .btn {
+      background-color: oklch(0.5 0.14 245);
+      border-color: oklch(0.5 0.14 245);
+
+      &:hover {
+        background-color: oklch(0.4 0.13 245);
+        border-color: oklch(0.4 0.13 245);
+      }
+
+      &:focus-visible {
+        outline-color: oklch(0.5 0.14 245);
+      }
+    }
+  }
+}

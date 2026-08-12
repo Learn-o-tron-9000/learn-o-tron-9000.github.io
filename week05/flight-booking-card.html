@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Week 05 Lab: Nesting &amp; Cascade Layers</title>
+  <link rel="stylesheet" href="flight-booking-card.css">
+</head>
+<body>
+
+  <!-- Global Header (Represents base/layout styles) -->
+  <header class="global-header">
+    <h1 class="global-title">Global Style Base</h1>
+    <p>This button uses global base styles:</p>
+    <button class="btn">Global Action Button</button>
+  </header>
+
+  <hr class="divider">
+
+  <!-- Isolated Component Section (Represents scoped component styles) -->
+  <main class="component-sandbox">
+
+    <!-- Isolated Flight Booking Component Card -->
+    <article class="booking-card">
+      <header class="booking-card__header">
+        <h3 class="booking-card__title">Flight Overview</h3>
+        <span class="booking-card__badge">Confirmed</span>
+      </header>
+
+      <div class="booking-card__route">
+        <div class="route-node">
+          <span class="route-node__code">SEA</span>
+          <span class="route-node__time">10:15 AM</span>
+        </div>
+        <div class="route-connector">
+          <span class="connector-line"></span>
+          <span class="connector-duration">4h 20m (Direct)</span>
+        </div>
+        <div class="route-node">
+          <span class="route-node__code">LAX</span>
+          <span class="route-node__time">02:35 PM</span>
+        </div>
+      </div>
+
+      <footer class="booking-card__footer">
+        <!-- Notice this button has the exact same generic ".btn" class as the header button! -->
+        <button class="btn">Manage Booking</button>
+      </footer>
+    </article>
+
+  </main>
+
+</body>
+</html>
