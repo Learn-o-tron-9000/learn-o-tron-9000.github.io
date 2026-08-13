@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Week 05: Cascade Layer &amp; Nesting Refactor</title>
+  <link rel="stylesheet" href="dashboard-layout.css">
+</head>
+<body>
+
+  <div class="dashboard">
+    <header class="dashboard__header">
+      <p class="zone-label">Header — Control Bar</p>
+    </header>
+
+    <nav class="dashboard__nav" aria-label="Primary navigation">
+      <p class="zone-label">Nav — Primary Navigation</p>
+    </nav>
+
+    <main class="dashboard__main">
+      <div class="content-grid">
+
+        <!-- Hero card: spans 2 columns x 2 rows on desktop -->
+        <article class="content-card content-card--hero">
+          <p class="content-card__label">Overview</p>
+          <h2 class="content-card__heading">Live Traffic Overview</h2>
+          <p class="content-card__body">Requests, unique visitors, and error rate across every region, refreshed in real time.</p>
+        </article>
+
+        <article class="content-card">
+          <p class="content-card__label">Growth</p>
+          <h2 class="content-card__heading">New Signups</h2>
+          <p class="content-card__body">1,284 today</p>
+        </article>
+
+        <article class="content-card">
+          <p class="content-card__label">Conversion</p>
+          <h2 class="content-card__heading">Checkout Rate</h2>
+          <p class="content-card__body">3.8% this week</p>
+        </article>
+
+        <article class="content-card">
+          <p class="content-card__label">Engagement</p>
+          <h2 class="content-card__heading">Avg. Session</h2>
+          <p class="content-card__body">6m 42s</p>
+        </article>
+
+        <article class="content-card">
+          <p class="content-card__label">Support</p>
+          <h2 class="content-card__heading">Open Tickets</h2>
+          <p class="content-card__body">7 awaiting reply</p>
+        </article>
+
+      </div>
+    </main>
+
+    <aside class="dashboard__aside" aria-label="Context drawer">
+      <p class="zone-label">Aside — Context Drawer</p>
+    </aside>
+
+    <footer class="dashboard__footer">
+      <p class="zone-label">Footer — Status Readout</p>
+    </footer>
+  </div>
+
+</body>
+</html>
