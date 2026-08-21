@@ -1,0 +1,230 @@
+/* =============================================================
+   Week 06 — Adaptive Card Widget
+   Container queries + :has() state toggles.
+   Constraint: no viewport @media queries, no JavaScript.
+   ============================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  color: oklch(0.28 0.02 262);
+  background-color: oklch(0.96 0.005 250);
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+/* -------------------------------------------------------------
+   Page shell — two wrappers of deliberately different widths.
+   Flex basis + grow ratios stack these on small screens without
+   a single media query.
+   ------------------------------------------------------------- */
+.workspace-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.sidebar-wrapper {
+  flex: 1 1 16rem;
+  max-inline-size: 20rem;   /* stays comfortably under the 480px query */
+}
+
+.main-wrapper {
+  flex: 999 1 30rem;        /* soaks up all remaining space */
+  min-inline-size: 0;
+}
+
+/* -------------------------------------------------------------
+   PHASE 1 — Register the container context.
+   Every .card-container becomes an inline-size query container,
+   so descendants can ask "how wide is my parent?" instead of
+   "how wide is the window?".
+   ------------------------------------------------------------- */
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+/* -------------------------------------------------------------
+   PHASE 3 (declaration) — local theme variables.
+   Every color the card paints reads from one of these custom
+   properties, scoped to the card itself, so a swap is one block.
+   ------------------------------------------------------------- */
+.adaptive-card {
+  --card-surface: oklch(1 0 0);
+  --card-ink:     oklch(0.25 0.02 262);
+  --card-muted:   oklch(0.50 0.02 262);
+  --card-border:  oklch(0.88 0.01 255);
+  --card-accent:  oklch(0.50 0.14 245);
+  --card-track:   oklch(0.85 0.01 255);
+  --card-thumb:   oklch(1 0 0);
+  --card-shadow:  oklch(0.4 0.05 262 / 0.30);
+
+  /* PHASE 2 — default (narrow) layout: stacked. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--card-surface);
+  color: var(--card-ink);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: 0 14px 30px -20px var(--card-shadow);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+
+  & .adaptive-card__image-box {
+    position: relative;
+    flex: none;
+    aspect-ratio: 16 / 10;
+    background-color: var(--card-track);
+  }
+
+  /* Absolutely filling the box means the image obeys whatever
+     height the box takes in either layout mode. */
+  & .product-img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  & .adaptive-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: clamp(1rem, 4cqi, 1.5rem);
+    min-inline-size: 0;
+  }
+
+  & .product-title {
+    margin: 0;
+    /* container-relative type: grows with the card, not the window */
+    font-size: clamp(1.05rem, 0.95rem + 1.4cqi, 1.4rem);
+    color: var(--card-ink);
+  }
+
+  & .product-description {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--card-muted);
+  }
+
+  & .adaptive-card__controls {
+    margin-block-start: auto;
+    padding-block-start: 0.75rem;
+  }
+}
+
+/* -------------------------------------------------------------
+   PHASE 2 — the container query.
+   Fires on the card's own container, NOT the viewport. The same
+   markup is stacked in the sidebar and horizontal in main.
+   ------------------------------------------------------------- */
+@container card (min-width: 480px) {
+  .adaptive-card {
+    flex-direction: row;
+    align-items: stretch;
+
+    /* Drop the fixed ratio: as a stretched flex item the box now
+       takes its height from the text column beside it. */
+    & .adaptive-card__image-box {
+      flex: 1 1 50%;
+      min-inline-size: 0;
+      aspect-ratio: auto;
+    }
+
+    & .adaptive-card__content {
+      flex: 1 1 50%;
+      justify-content: center;
+    }
+  }
+}
+
+/* -------------------------------------------------------------
+   The toggle switch itself.
+   The checkbox stays in the accessibility tree and keyboard
+   focus order — it is clipped, never display:none.
+   ------------------------------------------------------------- */
+.toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.theme-checkbox {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.toggle-slider {
+  position: relative;
+  flex: none;
+  inline-size: 2.6rem;
+  block-size: 1.45rem;
+  background-color: var(--card-track);
+  border-radius: 999px;
+  transition: background-color 0.25s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 0.175rem;
+    inset-inline-start: 0.175rem;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    background-color: var(--card-thumb);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px oklch(0 0 0 / 0.35);
+    transition: translate 0.25s ease;
+  }
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--card-muted);
+}
+
+/* Switch appearance + focus ring, driven by the checkbox state. */
+.theme-checkbox:checked + .toggle-slider {
+  background-color: var(--card-accent);
+
+  &::after { translate: 1.15rem 0; }
+}
+
+.theme-checkbox:focus-visible + .toggle-slider {
+  outline: 2px solid var(--card-accent);
+  outline-offset: 3px;
+}
+
+/* -------------------------------------------------------------
+   PHASE 3 — state-aware theme swap via :has().
+   The relational selector is anchored on .adaptive-card, so the
+   match is scoped to the ONE card holding the checked input.
+   Its sibling card in the other container is untouched.
+   ------------------------------------------------------------- */
+.adaptive-card:has(.theme-checkbox:checked) {
+  --card-surface: oklch(0.22 0.025 262);
+  --card-ink:     oklch(0.96 0.01 255);
+  --card-muted:   oklch(0.76 0.02 255);
+  --card-border:  oklch(0.35 0.02 262);
+  --card-accent:  oklch(0.78 0.12 245);
+  --card-track:   oklch(0.35 0.02 262);
+  --card-thumb:   oklch(0.97 0.01 255);
+  --card-shadow:  oklch(0 0 0 / 0.55);
+}
