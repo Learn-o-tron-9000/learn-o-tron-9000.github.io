@@ -1,0 +1,214 @@
+/* =============================================================
+   Week 06 — Interactive Notification Workspace
+   Container size queries + the relational :has() selector.
+   Constraint: no @media width rules, no JavaScript.
+   ============================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  color: oklch(0.28 0.02 262);
+  background-color: oklch(0.96 0.005 250);
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+/* -------------------------------------------------------------
+   Workspace shell — two slots of deliberately unequal width.
+   Flex basis plus a lopsided grow ratio keeps the sidebar narrow
+   and lets the feed absorb the rest, wrapping on small screens
+   without a single width breakpoint.
+   ------------------------------------------------------------- */
+.workspace-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  max-width: 74rem;
+  margin-inline: auto;
+}
+
+.sidebar-region {
+  flex: 1 1 16rem;
+  max-inline-size: 21rem;   /* always resolves below the 500px query */
+}
+
+.main-region {
+  flex: 999 1 32rem;        /* claims all leftover space */
+  min-inline-size: 0;
+}
+
+.region-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: oklch(0.55 0.02 262);
+}
+
+/* -------------------------------------------------------------
+   PHASE 1 — Register the containment context.
+   Each wrapper becomes an inline-size query container, so the
+   card inside it measures its slot rather than the viewport.
+   ------------------------------------------------------------- */
+.notification-container {
+  container-type: inline-size;
+  container-name: notification;
+}
+
+/* -------------------------------------------------------------
+   PHASE 2 (default) — narrow / stacked presentation.
+   Local custom properties hold every color the card paints, which
+   is what makes the Phase 3 state swap a single block.
+   ------------------------------------------------------------- */
+.notification-card {
+  --card-surface: oklch(1 0 0);
+  --card-border:  oklch(0.88 0.01 255);
+  --card-ink:     oklch(0.25 0.02 262);
+  --card-muted:   oklch(0.50 0.02 262);
+  --card-accent:  oklch(0.52 0.15 258);
+  --card-tint:    oklch(0.95 0.03 258);
+  --card-shadow:  oklch(0.4 0.05 262 / 0.28);
+  --visual-fade:  1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 0.9rem;
+  padding: clamp(1rem, 4cqi, 1.4rem);
+  background-color: var(--card-surface);
+  color: var(--card-ink);
+  border: 1px solid var(--card-border);
+  border-inline-start: 4px solid var(--card-accent);
+  border-radius: 12px;
+  box-shadow: 0 12px 26px -20px var(--card-shadow);
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
+
+  & .card-visual {
+    flex: none;
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    background-color: var(--card-tint);
+    border-radius: 10px;
+    opacity: var(--visual-fade);
+    transition: background-color 0.25s ease, opacity 0.25s ease;
+  }
+
+  & .icon {
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  & .card-details {
+    min-inline-size: 0;
+  }
+
+  & .card-title {
+    margin: 0 0 0.2rem;
+    /* container-relative type: scales with the slot, not the window */
+    font-size: clamp(1rem, 0.92rem + 1.1cqi, 1.25rem);
+    color: var(--card-ink);
+    transition: color 0.25s ease;
+  }
+
+  & .card-message {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--card-muted);
+    transition: color 0.25s ease;
+  }
+
+  & .card-actions {
+    flex: none;
+  }
+}
+
+/* The archive control — the native checkbox stays a native
+   checkbox, tinted with accent-color and fully keyboard-operable. */
+.action-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--card-muted);
+  transition: color 0.25s ease;
+}
+
+.archive-toggle {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  margin: 0;
+  accent-color: var(--card-accent);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--card-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* -------------------------------------------------------------
+   PHASE 2 (query) — the container query.
+   Evaluated against .notification-container's inline size, never
+   the viewport, so the same markup is stacked in the sidebar and
+   a wide row in the feed at the very same instant.
+   ------------------------------------------------------------- */
+@container notification (min-width: 500px) {
+  .notification-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+    padding-block: 1.15rem;
+
+    & .card-visual {
+      inline-size: 3.25rem;
+      block-size: 3.25rem;
+    }
+
+    & .card-details {
+      flex: 1 1 auto;   /* the text column absorbs the extra room */
+    }
+
+    & .card-actions {
+      margin-inline-start: auto;   /* control parks on the far edge */
+      padding-inline-start: 1.25rem;
+      border-inline-start: 1px solid var(--card-border);
+    }
+  }
+}
+
+/* -------------------------------------------------------------
+   PHASE 3 — parent-state styling via :has().
+   The relational selector reads the checkbox's state and restyles
+   its own ancestor. The anchor is .notification-card, so only the
+   card holding the checked input is matched — its twin in the
+   other slot is untouched, with no wrapper class and no JS.
+   ------------------------------------------------------------- */
+.notification-card:has(.archive-toggle:checked) {
+  --card-surface: oklch(0.94 0.004 258);
+  --card-border:  oklch(0.86 0.006 258);
+  --card-ink:     oklch(0.52 0.015 262);
+  --card-muted:   oklch(0.62 0.012 262);
+  --card-accent:  oklch(0.72 0.015 262);
+  --card-tint:    oklch(0.90 0.005 258);
+  --card-shadow:  oklch(0.4 0.05 262 / 0.10);
+  --visual-fade:  0.45;
+
+  /* archived items recede from the reading order visually */
+  & .card-title {
+    text-decoration: line-through;
+    text-decoration-color: oklch(0.72 0.015 262);
+  }
+}
