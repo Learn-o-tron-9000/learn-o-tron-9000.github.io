@@ -1,8 +1,15 @@
 /* ==========================================================================
-   Week 5 Project: Cascade Layer & Native Nesting Refactor
-   Duplicated from week04/dashboard-layout.css and reorganized into
-   @layer reset, base, layout, components (Weeks 03-04 remain untouched).
-   Visual output is unchanged — only the architecture was refactored.
+   Week 6 Project: Container Queries & Component-Level Fluidity
+   Duplicated from week05/dashboard-layout.css (Weeks 03-05 remain untouched).
+
+   What changed this week: every width rule that governed a card's INTERNAL
+   layout or the content grid's track count moved off the viewport and onto
+   the component's own container. The cards no longer know or care how big
+   the screen is — only how much room their slot gives them.
+
+   Remaining @media rules are page-frame or user-preference only:
+     - the .dashboard frame collapse (genuinely a page-level concern)
+     - prefers-color-scheme / prefers-reduced-motion (not width rules)
    ========================================================================== */
 
 @layer reset, base, layout, components;
@@ -74,6 +81,11 @@
     color: var(--text);
     background-color: var(--bg);
   }
+
+  /* The <use> sprite host is a definitions block, never rendered itself. */
+  .icon-defs {
+    display: none;
+  }
 }
 
 /* --- layout: page frame (header, nav, main, aside, footer) -----------------
@@ -97,8 +109,10 @@
     min-block-size: 100dvh;
     background-color: var(--bg);
 
-    /* Below this width the three-column frame no longer has room to breathe,
-       so the zones stack in document order instead of fighting minmax(). */
+    /* KEPT deliberately: this is page-frame reflow, not component styling.
+       Whether the whole dashboard is a three-column desk or a single stacked
+       column is a property of the screen, so the viewport is the right thing
+       to ask. Every rule below this point asks a container instead. */
     @media (max-width: 60rem) {
       grid-template-columns: 1fr;
       grid-template-rows: auto auto auto auto auto;
@@ -135,8 +149,14 @@
       border-radius: var(--radius);
     }
 
+    /* CONTAINER CONTEXT #1 — the main workspace.
+       The content grid inside asks this element how many columns it can
+       afford. Note the frame above may hand this element MORE width at a
+       narrow viewport (stacked frame = full-bleed main) than at a medium
+       one — the grid follows the slot, which is the whole point. */
     .dashboard__main {
       grid-area: main;
+      container: main-slot / inline-size;
       display: flex;
       flex-direction: column;
       gap: var(--space-md);
@@ -181,31 +201,65 @@
     font-style: italic;
   }
 
-  /* Explicit 3-column desktop track with minmax(0, 1fr) so columns share space
-     fluidly instead of snapping; the hero card claims a 2x2 span for visual
-     hierarchy. grid-auto-flow: dense lets later, smaller cards backfill any
-     gap the hero's span would otherwise leave open as the viewport resizes. */
+  /* Track count is now a question for .dashboard__main, not the window.
+     Default is the narrow case (single column) and the query widens it —
+     progressive enhancement in the same direction as mobile-first. */
   .content-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: minmax(8rem, auto);
     grid-auto-flow: dense;
     gap: var(--space-sm);
+  }
 
-    @media (max-width: 60rem) and (min-width: 36.01rem) {
+  @container main-slot (min-width: 560px) {
+    .content-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    @media (max-width: 36rem) {
-      grid-template-columns: minmax(0, 1fr);
     }
   }
 
-  .content-card {
+  @container main-slot (min-width: 840px) {
+    .content-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* CONTAINER CONTEXT #2 — one per card slot.
+     A card is a grid item, and an element cannot query itself, so each card
+     gets a slot wrapper to measure. The slot carries the grid placement;
+     the card just fills whatever the slot turned out to be. */
+  .card-slot {
+    container: card-slot / inline-size;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    padding: var(--space-sm);
+    min-inline-size: 0;
+  }
+
+  /* Hero spans grow with the main slot: full-width banner once there are two
+     columns, then the original 2x2 block once there are three. */
+  @container main-slot (min-width: 560px) {
+    .card-slot--hero,
+    .card-slot--wide {
+      grid-column: span 2;
+    }
+  }
+
+  @container main-slot (min-width: 840px) {
+    .card-slot--hero {
+      grid-row: span 2;
+    }
+  }
+
+  /* --- The multi-layout test component ------------------------------------
+     Default = narrow: visual on top, text beneath. Padding and the icon tile
+     are sized in cqi (the logical-axis form of cqw), so a card's internal
+     rhythm scales with its own slot rather than the page. */
+  .content-card {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: clamp(0.5rem, 2.5cqi, var(--space-sm));
+    padding: clamp(var(--space-sm), 3cqi, var(--space-md));
     color: var(--text);
     background-color: var(--surface);
     border: 1px solid var(--border);
@@ -218,6 +272,40 @@
       box-shadow: 0 16px 32px -16px var(--shadow);
     }
 
+    /* Both dimensions come from one --tile token rather than aspect-ratio:
+       as a flex item this box has min-block-size: auto, so a ratio-derived
+       height would lose to the SVG's own min-content height. Two definite
+       sides also give the icon's percentages something to resolve against. */
+    .content-card__visual {
+      --tile: clamp(2.25rem, 9cqi, 3.5rem);
+      flex: none;
+      display: grid;
+      place-items: center;
+      inline-size: var(--tile);
+      block-size: var(--tile);
+      color: var(--accent);
+      background-color: color-mix(in oklch, var(--accent) 12%, var(--surface));
+      border-radius: calc(var(--radius) * 0.6);
+    }
+
+    .content-card__icon {
+      display: block;
+      inline-size: 58%;
+      block-size: 58%;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .content-card__text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      min-inline-size: 0;
+    }
+
     .content-card__label {
       font-size: 0.75rem;
       font-weight: 700;
@@ -227,7 +315,8 @@
     }
 
     .content-card__heading {
-      font-size: 1.05rem;
+      /* container-relative type: the same card reads larger in a wide slot */
+      font-size: clamp(1.05rem, 0.95rem + 1.2cqi, 1.4rem);
     }
 
     .content-card__body {
@@ -236,17 +325,14 @@
     }
 
     &.content-card--hero {
-      grid-column: span 2;
-      grid-row: span 2;
       justify-content: center;
-      padding: var(--space-md);
       color: var(--on-accent);
       background-color: var(--accent);
       border-color: var(--accent-hover);
 
-      @media (max-width: 36rem) {
-        grid-column: span 1;
-        grid-row: span 1;
+      .content-card__visual {
+        color: var(--on-accent);
+        background-color: oklch(1 0 0 / 0.16);
       }
 
       .content-card__label {
@@ -255,13 +341,34 @@
       }
 
       .content-card__heading {
-        font-size: clamp(1.3rem, 1.05rem + 1vw, 1.75rem);
+        font-size: clamp(1.3rem, 1.05rem + 1.6cqi, 1.75rem);
       }
 
       .content-card__body {
         color: var(--on-accent);
         opacity: 0.9;
         font-size: 1rem;
+      }
+    }
+  }
+
+  /* THE ONE RULE THAT REPLACED THE MEDIA QUERIES.
+     Slot wider than 500px -> visual left, text right. Under it, the default
+     stacked layout above stands. Identical markup in the main grid's hero
+     slot and in the narrow aside resolves differently, at the same instant,
+     on the same screen. */
+  @container card-slot (min-width: 500px) {
+    .content-card {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-md);
+
+      .content-card__visual {
+        --tile: clamp(3rem, 7cqi, 4.5rem);
+      }
+
+      .content-card__text {
+        flex: 1 1 auto;
       }
     }
   }
