@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Week 06: Container Queries &amp; Component-Level Fluidity</title>
+  <title>Week 07: Micro-Interactions &amp; Scroll-Driven Enhancements</title>
   <link rel="stylesheet" href="dashboard-layout.css">
 </head>
 <body>
+
+  <!-- Reading progress for the main workspace. Empty by design: it carries
+       no content, only a scroll-bound transform. -->
+  <div class="scroll-progress-bar"></div>
 
   <!-- Icon sprite: defined once, referenced by every card via <use>.
        Keeps the card visuals dependency-free (no image requests, no JS). -->
@@ -33,13 +37,57 @@
   <div class="dashboard">
     <header class="dashboard__header">
       <p class="zone-label">Header — Control Bar</p>
+
+      <!-- Interactive controls: one form input and two buttons, each with
+           its own hover / focus-visible / active micro-interaction. -->
+      <div class="header-actions">
+        <div class="field">
+          <label class="visually-hidden" for="dash-search">Search metrics</label>
+          <input class="field__input" id="dash-search" type="search" placeholder="Search metrics…">
+        </div>
+        <button class="btn" type="button">Refresh</button>
+        <button class="btn btn--primary" type="button">Export</button>
+      </div>
     </header>
 
     <nav class="dashboard__nav" aria-label="Primary navigation">
       <p class="zone-label">Nav — Primary Navigation</p>
+
+      <ul class="nav-list">
+        <li>
+          <a class="nav-link" href="#main-workspace" aria-current="page">
+            <svg class="nav-link__icon" aria-hidden="true"><use href="#icon-traffic"></use></svg>
+            <span class="nav-link__text">Overview</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#main-workspace">
+            <svg class="nav-link__icon" aria-hidden="true"><use href="#icon-growth"></use></svg>
+            <span class="nav-link__text">Growth</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#main-workspace">
+            <svg class="nav-link__icon" aria-hidden="true"><use href="#icon-funnel"></use></svg>
+            <span class="nav-link__text">Funnels</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#main-workspace">
+            <svg class="nav-link__icon" aria-hidden="true"><use href="#icon-clock"></use></svg>
+            <span class="nav-link__text">Sessions</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" href="#activity-heading">
+            <svg class="nav-link__icon" aria-hidden="true"><use href="#icon-inbox"></use></svg>
+            <span class="nav-link__text">Support</span>
+          </a>
+        </li>
+      </ul>
     </nav>
 
-    <main class="dashboard__main">
+    <main class="dashboard__main" id="main-workspace">
       <div class="content-grid">
 
         <!-- Hero slot: spans 2 columns x 2 rows on desktop, so its
@@ -47,11 +95,11 @@
         <div class="card-slot card-slot--hero">
           <article class="content-card content-card--hero">
             <div class="content-card__visual">
-              <svg class="content-card__icon"><use href="#icon-traffic"></use></svg>
+              <svg class="content-card__icon" aria-hidden="true"><use href="#icon-traffic"></use></svg>
             </div>
             <div class="content-card__text">
               <p class="content-card__label">Overview</p>
-              <h2 class="content-card__heading">Live Traffic Overview</h2>
+              <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">Live Traffic Overview</a></h2>
               <p class="content-card__body">Requests, unique visitors, and error rate across every region, refreshed in real time.</p>
             </div>
           </article>
@@ -60,11 +108,11 @@
         <div class="card-slot">
           <article class="content-card">
             <div class="content-card__visual">
-              <svg class="content-card__icon"><use href="#icon-growth"></use></svg>
+              <svg class="content-card__icon" aria-hidden="true"><use href="#icon-growth"></use></svg>
             </div>
             <div class="content-card__text">
               <p class="content-card__label">Growth</p>
-              <h2 class="content-card__heading">New Signups</h2>
+              <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">New Signups</a></h2>
               <p class="content-card__body">1,284 today</p>
             </div>
           </article>
@@ -73,11 +121,11 @@
         <div class="card-slot">
           <article class="content-card">
             <div class="content-card__visual">
-              <svg class="content-card__icon"><use href="#icon-funnel"></use></svg>
+              <svg class="content-card__icon" aria-hidden="true"><use href="#icon-funnel"></use></svg>
             </div>
             <div class="content-card__text">
               <p class="content-card__label">Conversion</p>
-              <h2 class="content-card__heading">Checkout Rate</h2>
+              <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">Checkout Rate</a></h2>
               <p class="content-card__body">3.8% this week</p>
             </div>
           </article>
@@ -86,11 +134,11 @@
         <div class="card-slot">
           <article class="content-card">
             <div class="content-card__visual">
-              <svg class="content-card__icon"><use href="#icon-clock"></use></svg>
+              <svg class="content-card__icon" aria-hidden="true"><use href="#icon-clock"></use></svg>
             </div>
             <div class="content-card__text">
               <p class="content-card__label">Engagement</p>
-              <h2 class="content-card__heading">Avg. Session</h2>
+              <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">Avg. Session</a></h2>
               <p class="content-card__body">6m 42s</p>
             </div>
           </article>
@@ -102,17 +150,106 @@
         <div class="card-slot card-slot--wide">
           <article class="content-card">
             <div class="content-card__visual">
-              <svg class="content-card__icon"><use href="#icon-inbox"></use></svg>
+              <svg class="content-card__icon" aria-hidden="true"><use href="#icon-inbox"></use></svg>
             </div>
             <div class="content-card__text">
               <p class="content-card__label">Support</p>
-              <h2 class="content-card__heading">Open Tickets</h2>
+              <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">Open Tickets</a></h2>
               <p class="content-card__body">7 awaiting reply</p>
             </div>
           </article>
         </div>
 
       </div>
+
+      <!-- Activity feed: gives the main workspace enough content to scroll,
+           which is what the progress bar and the reveal timelines measure. -->
+      <section class="activity" aria-labelledby="activity-heading">
+        <h2 class="activity__heading" id="activity-heading">Recent Activity</h2>
+
+        <ul class="activity__list">
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-inbox"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Ticket #4821 reassigned to Platform</span>
+                <span class="activity__meta">Support · 4 minutes ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-growth"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Signup rate crossed the weekly target</span>
+                <span class="activity__meta">Growth · 22 minutes ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-traffic"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Error rate returned to baseline in eu-west</span>
+                <span class="activity__meta">Reliability · 1 hour ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-funnel"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Checkout funnel step 3 shortened by one field</span>
+                <span class="activity__meta">Conversion · 3 hours ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-clock"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Median session length up 14s week over week</span>
+                <span class="activity__meta">Engagement · 5 hours ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-inbox"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Digest export finished for 12 workspaces</span>
+                <span class="activity__meta">Support · yesterday</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-growth"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Retention cohort for June closed at 41%</span>
+                <span class="activity__meta">Growth · yesterday</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+          <li class="activity__item">
+            <a class="activity__link" href="#main-workspace">
+              <svg class="activity__icon" aria-hidden="true"><use href="#icon-traffic"></use></svg>
+              <span class="activity__text">
+                <span class="activity__title">Edge cache hit ratio steady at 96.2%</span>
+                <span class="activity__meta">Reliability · 2 days ago</span>
+              </span>
+              <span class="activity__chevron" aria-hidden="true">→</span>
+            </a>
+          </li>
+        </ul>
+      </section>
     </main>
 
     <aside class="dashboard__aside" aria-label="Context drawer">
@@ -125,11 +262,11 @@
       <div class="card-slot">
         <article class="content-card">
           <div class="content-card__visual">
-            <svg class="content-card__icon"><use href="#icon-inbox"></use></svg>
+            <svg class="content-card__icon" aria-hidden="true"><use href="#icon-inbox"></use></svg>
           </div>
           <div class="content-card__text">
             <p class="content-card__label">Support</p>
-            <h2 class="content-card__heading">Open Tickets</h2>
+            <h2 class="content-card__heading"><a class="content-card__link" href="#activity-heading">Open Tickets</a></h2>
             <p class="content-card__body">7 awaiting reply</p>
           </div>
         </article>
@@ -138,6 +275,7 @@
 
     <footer class="dashboard__footer">
       <p class="zone-label">Footer — Status Readout</p>
+      <a class="footer-link" href="#main-workspace">All systems nominal</a>
     </footer>
   </div>
 

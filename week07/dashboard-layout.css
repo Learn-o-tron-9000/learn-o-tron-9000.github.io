@@ -1,18 +1,29 @@
 /* ==========================================================================
-   Week 6 Project: Container Queries & Component-Level Fluidity
-   Duplicated from week05/dashboard-layout.css (Weeks 03-05 remain untouched).
+   Week 7 Project: Micro-Interactions & Scroll-Driven Enhancements
+   Duplicated from week06/dashboard-layout.css (Weeks 03-06 remain untouched).
 
-   What changed this week: every width rule that governed a card's INTERNAL
-   layout or the content grid's track count moved off the viewport and onto
-   the component's own container. The cards no longer know or care how big
-   the screen is — only how much room their slot gives them.
+   What changed this week: the dashboard gained real interactive controls and
+   a motion layer. Two rules govern every effect added here.
 
-   Remaining @media rules are page-frame or user-preference only:
-     - the .dashboard frame collapse (genuinely a page-level concern)
-     - prefers-color-scheme / prefers-reduced-motion (not width rules)
+   1. Composited properties for anything that moves. Every lift, press,
+      slide, and fade is `transform` or `opacity` — never width, height,
+      margin, top, or box-shadow. Where a shadow or a colour wash needs to
+      fade in, it lives on a pseudo-element whose OPACITY is what moves, so
+      the compositor can run it with no layout and no paint pass.
+      The only non-composited transitions left in the file are `border-color`
+      and `color`: both repaint one element's own box and neither can
+      reflow the page, so Paint Flashing stays local instead of lighting up
+      the whole layout on every scroll tick.
+
+   2. Hover is never the only trigger. Every micro-interaction fires on
+      :hover, :focus-visible, and :focus-within alike, so a keyboard user
+      gets the same feedback a mouse user does.
+
+   Container queries from Week 06 are untouched: the placement test still
+   resolves off .card-slot, not the viewport.
    ========================================================================== */
 
-@layer reset, base, layout, components;
+@layer reset, base, layout, components, motion;
 
 /* --- Design tokens (all colors in oklch) ---------------------------------- */
 :root {
@@ -24,6 +35,9 @@
   --text:          oklch(0.26 0.03 265);
   --text-muted:    oklch(0.52 0.03 265);
   --border:        oklch(0.90 0.015 265);
+  /* Form controls need a 3:1 boundary against their own fill (WCAG 1.4.11),
+     which the decorative --border is far too light to carry. */
+  --field-border:  oklch(0.58 0.022 265);
   --accent:        oklch(0.55 0.19 280);
   --accent-hover:  oklch(0.48 0.19 280);
   --on-accent:     oklch(0.99 0.01 280);
@@ -36,6 +50,13 @@
 
   --radius: 1rem;
   --transition: 0.25s ease;
+
+  /* Motion scale for this week's micro-interactions. Kept small on purpose:
+     a lift you have to look for is a lift that never distracts. */
+  --lift: -0.2rem;
+  --card-scale: 1.02;
+  --press-scale: 0.97;
+  --reveal-distance: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +66,7 @@
     --text:         oklch(0.95 0.012 265);
     --text-muted:   oklch(0.72 0.02 265);
     --border:       oklch(0.32 0.03 265);
+    --field-border: oklch(0.58 0.025 265);
     --accent:       oklch(0.72 0.16 280);
     --accent-hover: oklch(0.80 0.15 280);
     --on-accent:    oklch(0.20 0.04 280);
@@ -58,6 +80,7 @@
   --text:         oklch(0.95 0.012 265);
   --text-muted:   oklch(0.72 0.02 265);
   --border:       oklch(0.32 0.03 265);
+  --field-border: oklch(0.58 0.025 265);
   --accent:       oklch(0.72 0.16 280);
   --accent-hover: oklch(0.80 0.15 280);
   --on-accent:    oklch(0.20 0.04 280);
@@ -72,6 +95,17 @@
     box-sizing: border-box;
     margin: 0;
   }
+
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  input,
+  button {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 /* --- base: default element styles ------------------------------------------ */
@@ -85,6 +119,27 @@
   /* The <use> sprite host is a definitions block, never rendered itself. */
   .icon-defs {
     display: none;
+  }
+
+  /* One high-contrast ring for everything focusable, in the accent colour.
+     Never removed anywhere in this stylesheet — where a component wants the
+     ring somewhere else (the cards), it moves it, it does not delete it. */
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Available to assistive tech, invisible on screen. Not display:none —
+     that would drop the label out of the accessibility tree. */
+  .visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
@@ -107,6 +162,7 @@
     padding-block: var(--space-md);
     padding-inline: var(--space-md);
     min-block-size: 100dvh;
+    max-block-size: 100dvh;
     background-color: var(--bg);
 
     /* KEPT deliberately: this is page-frame reflow, not component styling.
@@ -122,6 +178,11 @@
         "main"
         "aside"
         "footer";
+
+      /* Stacked frame: let the PAGE grow and scroll instead of trapping a
+         short scroller inside main. The progress bar follows the scroller
+         that actually moves — see the motion layer. */
+      max-block-size: none;
     }
 
     .dashboard__header {
@@ -129,7 +190,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm) var(--space-md);
       padding-block: var(--space-sm);
       padding-inline: var(--space-md);
       background-color: var(--surface);
@@ -153,7 +215,10 @@
        The content grid inside asks this element how many columns it can
        afford. Note the frame above may hand this element MORE width at a
        narrow viewport (stacked frame = full-bleed main) than at a medium
-       one — the grid follows the slot, which is the whole point. */
+       one — the grid follows the slot, which is the whole point.
+
+       It is also this page's SCROLL container: `overflow-block: auto` is
+       what the progress bar's named scroll timeline measures. */
     .dashboard__main {
       grid-area: main;
       container: main-slot / inline-size;
@@ -184,6 +249,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: var(--space-sm);
       padding-block: var(--space-sm);
       padding-inline: var(--space-md);
       background-color: var(--surface);
@@ -191,14 +257,210 @@
       border-radius: var(--radius);
     }
   }
+
+  /* Second half of the stacked-frame switch: main stops being its own
+     scroll container, so the document scrolls instead. It has to sit AFTER
+     the frame block above — the base .dashboard__main rule has the same
+     specificity, so only source order decides this one.
+
+     Dropping the scroller also re-points every view() timeline inside main
+     at the document scrollport, which is what keeps the card reveals alive
+     in the stacked layout. */
+  @media (max-width: 60rem) {
+    .dashboard .dashboard__main {
+      overflow-block: visible;
+    }
+  }
 }
 
-/* --- components: content grid, cards, and standalone widgets --------------- */
+/* --- components: content grid, cards, controls, and widgets ---------------- */
 @layer components {
   .zone-label {
     color: var(--text-muted);
     font-size: 0.85rem;
     font-style: italic;
+  }
+
+  /* ---------------------------------------------------------------------
+     Header controls
+     --------------------------------------------------------------------- */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* The field wrapper exists to host the focus underline, which is a
+     scaleX'd pseudo-element rather than an animated border width. */
+  .field {
+    position: relative;
+    display: flex;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0.35rem;
+      inset-block-end: 0;
+      block-size: 2px;
+      background-color: var(--accent);
+      border-radius: 2px;
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform var(--transition);
+    }
+
+    &:focus-within::after {
+      transform: scaleX(1);
+    }
+  }
+
+  .field__input {
+    inline-size: min(100%, 14rem);
+    padding-block: 0.45rem;
+    padding-inline: 0.7rem;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--field-border);
+    border-radius: 0.6rem;
+    transition: border-color var(--transition);
+
+    &::placeholder { color: var(--text-muted); }
+    &:hover { border-color: var(--accent); }
+  }
+
+  /* Buttons. The hover wash is a pseudo-element fading in — the button's own
+     background-color never animates, so hovering repaints nothing. */
+  .btn {
+    position: relative;
+    isolation: isolate;
+    padding-block: 0.45rem;
+    padding-inline: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    transition: transform var(--transition);
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-color: var(--accent);
+      border-radius: inherit;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    &:hover::before,
+    &:focus-visible::before {
+      opacity: 0.14;
+    }
+
+    /* The press. Scale, not a margin or top nudge, so nothing reflows. */
+    &:active {
+      transform: scale(var(--press-scale));
+    }
+  }
+
+  .btn--primary {
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border-color: var(--accent-hover);
+
+    /* On a filled button the wash lightens instead of tinting. */
+    &::before { background-color: var(--on-accent); }
+
+    &:hover::before,
+    &:focus-visible::before {
+      opacity: 0.18;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Navigation rail
+     --------------------------------------------------------------------- */
+  .nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .nav-link {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-block: 0.5rem;
+    padding-inline: 0.7rem;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 0.6rem;
+    transition: transform var(--transition), color var(--transition);
+
+    /* Active/hover indicator: a 3px rail that grows from the middle. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset-block: 0.3rem;
+      inset-inline-start: 0;
+      inline-size: 3px;
+      background-color: var(--accent);
+      border-radius: 3px;
+      transform: scaleY(0);
+      transition: transform var(--transition);
+    }
+
+    /* Hover/focus wash, opacity-only like the buttons. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-color: var(--accent);
+      border-radius: inherit;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    &:hover,
+    &:focus-visible {
+      transform: translateX(3px);
+      color: var(--accent-hover);
+    }
+
+    &:hover::before,
+    &:focus-visible::before {
+      transform: scaleY(1);
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      opacity: 0.10;
+    }
+
+    &[aria-current="page"] {
+      font-weight: 600;
+      color: var(--accent-hover);
+
+      &::before { transform: scaleY(1); }
+      &::after  { opacity: 0.10; }
+    }
+  }
+
+  .nav-link__icon {
+    flex: none;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   /* Track count is now a question for .dashboard__main, not the window.
@@ -227,7 +489,11 @@
   /* CONTAINER CONTEXT #2 — one per card slot.
      A card is a grid item, and an element cannot query itself, so each card
      gets a slot wrapper to measure. The slot carries the grid placement;
-     the card just fills whatever the slot turned out to be. */
+     the card just fills whatever the slot turned out to be.
+
+     This week the slot earns a second job: it is the element the scroll
+     reveal animates. See the note in the motion layer for why the reveal
+     and the hover lift must live on different elements. */
   .card-slot {
     container: card-slot / inline-size;
     display: flex;
@@ -255,6 +521,8 @@
      are sized in cqi (the logical-axis form of cqw), so a card's internal
      rhythm scales with its own slot rather than the page. */
   .content-card {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -265,11 +533,56 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 12px 28px -18px var(--shadow);
-    transition: transform var(--transition), box-shadow var(--transition);
+    transition: transform var(--transition), border-color var(--transition);
 
-    &:hover {
-      transform: translateY(-0.2rem);
-      box-shadow: 0 16px 32px -16px var(--shadow);
+    /* The elevated shadow, pre-rendered and faded in on demand.
+       Animating box-shadow itself would repaint the card every frame;
+       animating this layer's opacity is a compositor-only change. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      box-shadow: 0 22px 40px -16px var(--shadow);
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+    }
+
+    /* Pointer and keyboard get the identical response. :focus-within fires
+       when the card's stretched link is tabbed to. */
+    &:hover,
+    &:focus-within {
+      transform: translateY(var(--lift)) scale(var(--card-scale));
+      border-color: var(--accent);
+
+      &::before { opacity: 1; }
+    }
+
+    /* The whole card is the hit area, but only the heading text is the link,
+       so the accessible name stays short and screen-reader output does not
+       swallow the body copy. */
+    .content-card__link {
+      color: inherit;
+      text-decoration: none;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+      }
+
+      /* The ring belongs on the card, not on three words of heading. */
+      &:focus-visible { outline: none; }
+    }
+
+    /* Relational selector, so the ring lands on the whole component while
+       focus technically sits on the link inside it. */
+    &:has(.content-card__link:focus-visible) {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
     }
 
     /* Both dimensions come from one --tile token rather than aspect-ratio:
@@ -286,6 +599,13 @@
       color: var(--accent);
       background-color: color-mix(in oklch, var(--accent) 12%, var(--surface));
       border-radius: calc(var(--radius) * 0.6);
+      transition: transform var(--transition);
+    }
+
+    /* The icon tile leans in a little further than the card does. */
+    &:hover .content-card__visual,
+    &:focus-within .content-card__visual {
+      transform: scale(1.06);
     }
 
     .content-card__icon {
@@ -349,6 +669,11 @@
         opacity: 0.9;
         font-size: 1rem;
       }
+
+      &:hover,
+      &:focus-within {
+        border-color: var(--on-accent);
+      }
     }
   }
 
@@ -372,11 +697,260 @@
       }
     }
   }
+
+  /* ---------------------------------------------------------------------
+     Activity feed
+     --------------------------------------------------------------------- */
+  .activity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .activity__heading {
+    font-size: 1.1rem;
+  }
+
+  .activity__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .activity__link {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-block: 0.65rem;
+    padding-inline: 0.8rem;
+    color: var(--text);
+    text-decoration: none;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.7rem;
+    transition: transform var(--transition), border-color var(--transition);
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-color: var(--accent);
+      border-radius: inherit;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    &:hover,
+    &:focus-visible {
+      transform: translateX(4px);
+      border-color: var(--accent);
+
+      &::before { opacity: 0.08; }
+
+      .activity__chevron {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  }
+
+  .activity__icon {
+    flex: none;
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    color: var(--accent);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .activity__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-inline-size: 0;
+  }
+
+  .activity__title {
+    font-size: 0.95rem;
+  }
+
+  .activity__meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  /* Parked off to the side at zero opacity: it is already laid out, so
+     revealing it moves nothing else on the row. */
+  .activity__chevron {
+    flex: none;
+    margin-inline-start: auto;
+    color: var(--accent);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--transition), transform var(--transition);
+  }
+
+  /* ---------------------------------------------------------------------
+     Footer
+     --------------------------------------------------------------------- */
+  .footer-link {
+    position: relative;
+    color: var(--accent-hover);
+    text-decoration: none;
+    font-size: 0.85rem;
+
+    /* Underline that wipes in from the left instead of toggling on. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      inset-block-end: -2px;
+      block-size: 2px;
+      background-color: currentColor;
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform var(--transition);
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      transform: scaleX(1);
+    }
+  }
+
+  /* The progress bar itself. Pre-collapsed, painted once, then only ever
+     transformed. Sits above every panel in the frame. */
+  .scroll-progress-bar {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 1000;
+    block-size: 4px;
+    background-color: var(--accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+  }
 }
 
-/* --- Respect reduced-motion (unlayered: always wins over layered rules) --- */
+/* ==========================================================================
+   MOTION — scroll-driven animations
+   ========================================================================== */
+@layer motion {
+
+  @keyframes scale-progress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(var(--reveal-distance));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Gated behind @supports: a browser without scroll-driven animations skips
+     this block and gets the static dashboard — cards at full opacity, and a
+     progress bar left at scaleX(0), i.e. invisible. Nothing is hidden by a
+     feature that is missing. */
+  @supports (animation-timeline: scroll()) and (animation-timeline: view()) {
+
+    /* OPTION A — reading progress for <main>.
+       The scrolling element here is .dashboard__main, not the document, so
+       `scroll(root)` would measure a scrollport that never moves. Instead
+       main names its own timeline, :root puts that name in scope, and the
+       fixed bar — which is not a descendant of main — can then refer to it. */
+    :root {
+      timeline-scope: --main-scroll;
+    }
+
+    .dashboard__main {
+      scroll-timeline: --main-scroll block;
+    }
+
+    .scroll-progress-bar {
+      animation: scale-progress auto linear;
+      animation-fill-mode: both;
+      /* Set AFTER the shorthand on purpose: `animation` resets
+         animation-timeline to auto, which would silently make this a
+         time-based animation that plays once on load. */
+      animation-timeline: --main-scroll;
+    }
+
+    /* Same bar, different scroller. In the stacked frame main no longer
+       scrolls — the document does — so the bar switches to the root
+       timeline rather than sitting inert at scaleX(0). */
+    @media (max-width: 60rem) {
+      .scroll-progress-bar {
+        animation-timeline: scroll(root block);
+      }
+    }
+
+    /* OPTION B — scroll reveals.
+       The reveal animates the SLOT, while the hover lift animates the CARD
+       inside it. That split is not cosmetic: an animation with
+       `fill-mode: both` keeps applying its final transform from the
+       animation origin of the cascade, which outranks a plain :hover
+       declaration. Put both on one element and the finished reveal would
+       eat the hover lift entirely. */
+    .card-slot,
+    .activity__item {
+      animation: reveal-up auto ease-out;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      /* Both bounds sit in the ENTRY phase: 10% of the way into entering the
+         scrollport through 80% of the way in. Entry-only ranges matter at the
+         end of a scroller — a `cover`-phase end bound is unreachable for the
+         last item in the list, which would strand it half-faded at maximum
+         scroll. Anything that finishes entering, finishes revealing. */
+      animation-range: entry 10% entry 80%;
+    }
+  }
+}
+
+/* --- Respect reduced-motion (unlayered: always wins over layered rules) ---
+   The blanket reset below is the standard one, and it handles every
+   transition on this page. It does NOT handle the two scroll-driven
+   animations: those take their progress from scroll offset rather than from
+   time, so overriding animation-duration and animation-delay changes
+   nothing about them. A scroll-linked animation has to have its timeline
+   detached, which is what the two rules after the blanket block do. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    transition: none !important;
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  /* Cards and activity rows render directly in their resting state. */
+  .card-slot,
+  .activity__item {
+    animation-name: none !important;
+    animation-timeline: auto !important;
+    animation-range: normal !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* With its timeline detached the bar would sit at scaleX(0) as a dead
+     sliver, so it is removed rather than left as decoration. */
+  .scroll-progress-bar {
+    animation-name: none !important;
+    animation-timeline: auto !important;
+    display: none !important;
   }
 }
