@@ -1,0 +1,278 @@
+/* ==========================================================================
+   Week 07 Lab — Pure CSS Reading Progress & View-Timeline Content Reveals
+   Interactive Article Portal.
+
+   Constraint: zero JavaScript. Every scroll effect on this page is a native
+   CSS scroll-driven animation, so the browser runs it on the compositor
+   thread instead of waking the main thread on every scroll tick.
+
+   Only two properties are ever animated — `transform` and `opacity`. Both
+   are composited, so scrolling this page produces no layout, no repaint,
+   and therefore no green flashes in DevTools > Rendering > Paint Flashing.
+
+   Layer order continues the Week 05/06 architecture; `motion` sits last so
+   the scroll-driven rules and the reduced-motion resets always win.
+   ========================================================================== */
+
+@layer reset, base, layout, components, motion;
+
+/* --- Design tokens (all colors in oklch) ---------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  --bg:          oklch(0.97 0.008 255);
+  --surface:     oklch(1 0 0);
+  --text:        oklch(0.25 0.025 262);
+  --text-muted:  oklch(0.50 0.03 262);
+  --border:      oklch(0.89 0.012 255);
+  --accent:      oklch(0.55 0.17 275);
+  --accent-alt:  oklch(0.68 0.16 200);
+  --shadow:      oklch(0.4 0.05 262 / 0.18);
+
+  --measure: 38rem;         /* comfortable reading width */
+  --radius: 14px;
+  --space-sm: 0.75rem;
+  --space-md: 1.75rem;
+  --space-lg: clamp(3rem, 8vw, 6rem);
+
+  --progress-height: 0.35rem;
+  --reveal-distance: 40px;  /* the slide-up travel from the brief */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:         oklch(0.18 0.02 262);
+    --surface:    oklch(0.23 0.025 262);
+    --text:       oklch(0.95 0.012 255);
+    --text-muted: oklch(0.73 0.02 255);
+    --border:     oklch(0.33 0.025 262);
+    --accent:     oklch(0.76 0.15 275);
+    --accent-alt: oklch(0.80 0.13 200);
+    --shadow:     oklch(0 0 0 / 0.5);
+  }
+}
+
+/* --- Reset ---------------------------------------------------------------- */
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body { margin: 0; }
+
+  h1, h3, p { margin: 0; }
+}
+
+/* --- Base typography ------------------------------------------------------ */
+@layer base {
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.65;
+    color: var(--text);
+    background-color: var(--bg);
+    /* A body-level overflow value of anything but `visible` would create a
+       new scroll container and starve `scroll(root)` of scroll range, so it
+       is deliberately left alone. */
+  }
+}
+
+/* --- Layout --------------------------------------------------------------- */
+@layer layout {
+  .article-layout {
+    inline-size: min(100% - 2.5rem, var(--measure));
+    margin-inline: auto;
+    /* Generous vertical rhythm gives the document real scroll depth, which
+       is what both timelines measure against. The oversized tail also
+       guarantees the LAST card has enough scroll left below it to finish
+       its own view() range instead of stalling part-way. */
+    padding-block: var(--space-lg) calc(var(--space-lg) * 4);
+  }
+
+  .article-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    justify-content: center;
+    min-block-size: 62svh;
+    margin-block-end: var(--space-lg);
+    padding-block-end: var(--space-md);
+    border-block-end: 2px solid var(--border);
+  }
+
+  .article-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  /* auto-fit keeps the grid responsive without a single @media width rule.
+     On two-column widths, neighbouring cards still enter at different
+     moments — see the per-card range offset in the `motion` layer. */
+  .reveal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: var(--space-md);
+    margin-block: var(--space-lg);
+  }
+}
+
+/* --- Components ----------------------------------------------------------- */
+@layer components {
+
+  /* PHASE 1 — the reading progress bar.
+     Fixed to the top edge, full width, and pre-scaled to nothing. Scaling
+     from a left origin means the bar "fills" rightwards while the browser
+     only ever recomputes a transform matrix — no width animation, so no
+     layout pass. */
+  .progress-indicator {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 10;
+    block-size: var(--progress-height);
+    background-image: linear-gradient(to right, var(--accent), var(--accent-alt));
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .article-meta {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+  }
+
+  .article-title {
+    font-size: clamp(2.1rem, 1.4rem + 3.4vw, 3.4rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  .article-lead {
+    font-size: clamp(1.05rem, 1rem + 0.5vw, 1.3rem);
+    color: var(--text-muted);
+  }
+
+  .article-body > p {
+    font-size: 1.05rem;
+    text-wrap: pretty;
+  }
+
+  .reveal-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.4rem;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 14px 30px -22px var(--shadow);
+  }
+
+  .reveal-card__icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+
+  .reveal-card__title {
+    font-size: 1.15rem;
+    color: var(--text);
+  }
+
+  .reveal-card__text {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+}
+
+/* ==========================================================================
+   MOTION — the scroll-driven animation layer
+   ========================================================================== */
+@layer motion {
+
+  /* PHASE 2 — progress keyframes: 0 → full width. */
+  @keyframes grow-progress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* PHASE 3 — reveal keyframes: faded and 40px low → resting state. */
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--reveal-distance));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Everything scroll-driven is gated behind @supports. Browsers without
+     scroll-driven animations skip this block entirely and get the plain,
+     fully readable article — an empty (scaleX(0)) progress bar and cards
+     already at opacity 1. Nothing is left permanently invisible. */
+  @supports (animation-timeline: scroll()) and (animation-timeline: view()) {
+
+    /* PHASE 2 — bind the bar to the document's own scroll progress.
+       `scroll(root)` is the root scroller's block-axis timeline: 0% at the
+       top of the document, 100% at the bottom. No duration is declared,
+       because a scroll timeline supplies the progress itself.
+
+       Written as longhands on purpose: the `animation` shorthand resets
+       `animation-timeline` back to `auto`, which would silently turn this
+       into a time-based animation that fires once on load. */
+    .progress-indicator {
+      animation-name: grow-progress;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+    }
+
+    /* PHASE 3 — each card gets its OWN view() timeline, measured from its
+       own box against the scrollport. Four cards means four independent
+       timelines, so they never fade in as a group.
+
+       animation-range: entry 10% contain 40%
+         start — the card is 10% of the way through entering the scrollport
+         end   — it is 40% of the way through being fully contained by it
+       Between those two points the card interpolates the keyframes; before
+       and after, `fill-mode: both` pins it to the `from` / `to` state. */
+    .reveal-card {
+      animation-name: reveal-in;
+      animation-timing-function: ease-out;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 10% contain 40%;
+    }
+
+    /* Choreography: shifting every second card's range later means that in
+       a two-column layout the pair in one row still arrives one after the
+       other rather than in lockstep. */
+    .reveal-card:nth-child(even) {
+      animation-range: entry 25% contain 55%;
+    }
+  }
+
+  /* --- Accessibility: honour the OS "Reduce Motion" setting ---------------
+     Static resets, not slower animations. The cards drop their timeline and
+     sit in their final resting state — visible, un-translated, no travel.
+
+     The progress bar keeps its scroll binding on purpose: it does not move
+     on its own, it only reports the scroll position the reader is already
+     driving by hand, so there is no independent motion to suppress. Its
+     decorative gradient and geometry are unchanged either way. */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-card,
+    .reveal-card:nth-child(even) {
+      animation-name: none;
+      animation-timeline: auto;
+      animation-range: normal;
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Belt and braces for any transition added later in this stylesheet. */
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
