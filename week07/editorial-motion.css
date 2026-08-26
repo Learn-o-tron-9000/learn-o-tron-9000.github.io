@@ -1,0 +1,378 @@
+/* ==========================================================================
+   Week 07 Lab — Scroll-Driven Timelines & Starting-Style Transitions
+   Interactive Editorial Layout.
+
+   Three motion mechanisms, three different jobs:
+     1. scroll(root) timeline  — reading progress, driven by document scroll
+     2. view() timeline        — figure reveal, driven by the figure's own
+                                 intersection with the scrollport
+     3. @starting-style        — signup widget entrance, driven by first
+                                 render, with a plain `transition` (no
+                                 keyframes, no animation class, no JS)
+
+   Only `transform` and `opacity` ever animate, so scrolling this page needs
+   no layout and no repaint — DevTools > Rendering > Paint Flashing stays
+   quiet while the effects run.
+
+   Layer order continues the Week 05/06 architecture; `motion` sits last so
+   its bindings and the reduced-motion resets always win.
+   ========================================================================== */
+
+@layer reset, base, layout, components, motion;
+
+/* --- Design tokens (all colors in oklch) ---------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  --bg:           oklch(0.97 0.008 250);
+  --surface:      oklch(1 0 0);
+  --surface-alt:  oklch(0.95 0.015 250);
+  --text:         oklch(0.24 0.025 262);
+  --text-muted:   oklch(0.50 0.028 262);
+  --border:       oklch(0.88 0.014 255);
+  /* Form controls need a 3:1 boundary against their own fill (WCAG 1.4.11),
+     which the decorative --border is far too light to provide. */
+  --field-border: oklch(0.58 0.022 255);
+  --accent:       oklch(0.52 0.16 255);
+  --accent-hover: oklch(0.44 0.16 255);
+  --accent-alt:   oklch(0.70 0.15 175);
+  --on-accent:    oklch(0.99 0.005 255);
+  --shadow:       oklch(0.40 0.05 262 / 0.20);
+
+  --measure: 40rem;
+  --radius: 16px;
+  --space-sm: 0.75rem;
+  --space-md: 1.75rem;
+  --space-lg: clamp(3rem, 8vw, 6rem);
+
+  --tracker-height: 0.35rem;
+  --entrance-duration: 550ms;
+  --entrance-easing: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           oklch(0.17 0.02 262);
+    --surface:      oklch(0.23 0.025 262);
+    --surface-alt:  oklch(0.27 0.03 262);
+    --text:         oklch(0.95 0.012 255);
+    --text-muted:   oklch(0.73 0.02 255);
+    --border:       oklch(0.33 0.025 262);
+    --field-border: oklch(0.58 0.025 255);
+    --accent:       oklch(0.75 0.14 255);
+    --accent-hover: oklch(0.83 0.13 255);
+    --accent-alt:   oklch(0.80 0.13 175);
+    --on-accent:    oklch(0.18 0.03 262);
+    --shadow:       oklch(0 0 0 / 0.50);
+  }
+}
+
+/* --- Reset ---------------------------------------------------------------- */
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body { margin: 0; }
+
+  h1, h3, p, figure, figcaption { margin: 0; }
+
+  img { display: block; max-inline-size: 100%; }
+
+  input, button { font: inherit; color: inherit; }
+}
+
+/* --- Base ----------------------------------------------------------------- */
+@layer base {
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.65;
+    color: var(--text);
+    background-color: var(--bg);
+    /* Left deliberately untouched: giving <body> any non-visible overflow
+       value would create a second scroll container and starve
+       `scroll(root)` of the scroll range it measures. */
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* --- Layout --------------------------------------------------------------- */
+@layer layout {
+  .editorial-container {
+    inline-size: min(100% - 2.5rem, var(--measure));
+    margin-inline: auto;
+    /* Vertical rhythm doubles as scroll depth — both timelines measure
+       against it. The oversized tail leaves the figure and the widget room
+       to finish their ranges before the document runs out of scroll. */
+    padding-block: var(--space-lg) calc(var(--space-lg) * 3);
+  }
+
+  .editorial-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    justify-content: center;
+    min-block-size: 60svh;
+    margin-block-end: var(--space-lg);
+    padding-block-end: var(--space-md);
+    border-block-end: 2px solid var(--border);
+  }
+
+  .editorial-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .signup-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-block-start: 1.1rem;
+  }
+}
+
+/* --- Components ----------------------------------------------------------- */
+@layer components {
+
+  /* PHASE 1 — reading progress bar.
+     Fixed to the top edge and pre-collapsed to nothing. Filling it with
+     scaleX from a left origin keeps the work on the compositor: no width
+     animation means no layout pass and no repaint per frame. */
+  .scroll-tracker {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 10;
+    block-size: var(--tracker-height);
+    background-image: linear-gradient(to right, var(--accent), var(--accent-alt));
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .editorial-tag {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .editorial-title {
+    font-size: clamp(2.1rem, 1.4rem + 3.4vw, 3.4rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+  }
+
+  .editorial-lead {
+    font-size: clamp(1.05rem, 1rem + 0.5vw, 1.3rem);
+    color: var(--text-muted);
+  }
+
+  .editorial-body > p {
+    font-size: 1.05rem;
+    text-wrap: pretty;
+  }
+
+  /* The figure. `aspect-ratio` on the image reserves its box before the
+     bytes arrive, so a late-loading photo cannot shift the geometry the
+     view() timeline is measured against. */
+  .reveal-figure {
+    margin-block: var(--space-lg);
+    /* The scroll reveal scales this box; a fixed origin keeps the growth
+       centred instead of dragging the caption sideways. */
+    transform-origin: center center;
+  }
+
+  .reveal-img {
+    inline-size: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    background-color: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 22px 45px -30px var(--shadow);
+  }
+
+  .reveal-figure figcaption {
+    margin-block-start: 0.7rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  /* The newsletter card. Its resting state is the *visible* state — the
+     entrance comes from @starting-style in the motion layer, so if the
+     browser does not support that rule the card simply renders, fully
+     legible, with no entrance. Nothing is ever stuck at opacity: 0. */
+  .signup-widget {
+    margin-block: var(--space-lg);
+    padding: clamp(1.5rem, 5vw, 2.25rem);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 50px -34px var(--shadow);
+  }
+
+  .signup-widget h3 {
+    font-size: 1.35rem;
+    margin-block-end: 0.4rem;
+  }
+
+  .signup-widget p {
+    font-size: 0.97rem;
+    color: var(--text-muted);
+  }
+
+  .input-field {
+    flex: 1 1 14rem;
+    min-inline-size: 0;
+    padding: 0.7rem 0.9rem;
+    background-color: var(--bg);
+    border: 1px solid var(--field-border);
+    border-radius: 10px;
+    transition: border-color 0.2s ease;
+  }
+
+  .input-field::placeholder { color: var(--text-muted); }
+  .input-field:hover { border-color: var(--accent); }
+
+  .btn-submit {
+    flex: 0 0 auto;
+    padding: 0.7rem 1.4rem;
+    font-weight: 600;
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .btn-submit:hover { background-color: var(--accent-hover); }
+  .btn-submit:active { transform: translateY(1px); }
+}
+
+/* ==========================================================================
+   MOTION
+   ========================================================================== */
+@layer motion {
+
+  /* PHASE 1 — progress keyframes. */
+  @keyframes tracker-fill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* PHASE 2 — figure reveal: faded and slightly small → full size. */
+  @keyframes figure-reveal {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Both scroll-driven bindings are gated behind @supports. A browser
+     without scroll-driven animations skips this block entirely: the
+     tracker stays at scaleX(0) (an invisible strip) and the figure renders
+     normally at full opacity. No content is hidden by a missing feature. */
+  @supports (animation-timeline: scroll()) and (animation-timeline: view()) {
+
+    /* PHASE 1 — bind the tracker to the root scroller's own progress.
+       0% is the top of the document, 100% the bottom. No duration is
+       declared: a scroll timeline supplies progress instead of time.
+
+       Longhands, not the `animation` shorthand — the shorthand resets
+       `animation-timeline` back to `auto`, which would quietly turn this
+       into a time-based animation that plays once on load. */
+    .scroll-tracker {
+      animation-name: tracker-fill;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+    }
+
+    /* PHASE 2 — the figure rides its OWN view() timeline, measured from
+       its box against the scrollport rather than from document scroll.
+
+       animation-range: entry 15% cover 45%
+         start — 15% of the way through the figure entering the scrollport
+         end   — 45% of the way through the cover phase (the whole span
+                 during which the figure overlaps the scrollport)
+       Outside that window `fill-mode: both` pins the from / to states. */
+    .reveal-figure {
+      animation-name: figure-reveal;
+      animation-timing-function: ease-out;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 15% cover 45%;
+    }
+  }
+
+  /* PHASE 3 — @starting-style entrance for the signup widget.
+     No keyframes and no animation: the resting state in the components
+     layer is the real style, and @starting-style supplies the "before
+     first render" value that the transition interpolates FROM the very
+     first time the element is styled. Two composited properties only, so
+     the entrance costs one GPU-side interpolation and no repaints. */
+  .signup-widget {
+    transition:
+      opacity   var(--entrance-duration) var(--entrance-easing),
+      transform var(--entrance-duration) var(--entrance-easing);
+    opacity: 1;
+    transform: translateY(0);
+
+    @starting-style {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+  }
+
+  /* --- Accessibility: honour the OS "Reduce Motion" setting ---------------
+     Static resets, not slower motion. Every timeline is detached and every
+     entrance transition is dropped, so each element renders directly in
+     its final state. */
+  @media (prefers-reduced-motion: reduce) {
+
+    /* The tracker's scroll binding is released. With no animation it would
+       sit at scaleX(0) as a dead gradient strip, so it is removed from the
+       page instead of left as an empty sliver. */
+    .scroll-tracker {
+      animation-name: none;
+      animation-timeline: auto;
+      display: none;
+    }
+
+    .reveal-figure {
+      animation-name: none;
+      animation-timeline: auto;
+      animation-range: normal;
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Dropping the transition means @starting-style has nothing to
+       interpolate — the card is simply painted in its resting state. */
+    .signup-widget {
+      transition: none;
+      opacity: 1;
+      transform: none;
+
+      @starting-style {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* Belt and braces for the hover/active affordances above. */
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
