@@ -1,0 +1,382 @@
+/* ==========================================================================
+   Week 6 Project: Container Queries & Component-Level Fluidity
+   Duplicated from week05/dashboard-layout.css (Weeks 03-05 remain untouched).
+
+   What changed this week: every width rule that governed a card's INTERNAL
+   layout or the content grid's track count moved off the viewport and onto
+   the component's own container. The cards no longer know or care how big
+   the screen is — only how much room their slot gives them.
+
+   Remaining @media rules are page-frame or user-preference only:
+     - the .dashboard frame collapse (genuinely a page-level concern)
+     - prefers-color-scheme / prefers-reduced-motion (not width rules)
+   ========================================================================== */
+
+@layer reset, base, layout, components;
+
+/* --- Design tokens (all colors in oklch) ---------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* Light palette (default) */
+  --bg:            oklch(0.97 0.012 265);
+  --surface:       oklch(1 0 0);
+  --text:          oklch(0.26 0.03 265);
+  --text-muted:    oklch(0.52 0.03 265);
+  --border:        oklch(0.90 0.015 265);
+  --accent:        oklch(0.55 0.19 280);
+  --accent-hover:  oklch(0.48 0.19 280);
+  --on-accent:     oklch(0.99 0.01 280);
+  --shadow:        oklch(0.55 0.05 265 / 0.18);
+
+  /* Spacing scale (extends Week 02's single --space token) */
+  --space-sm: 0.75rem;
+  --space-md: 1.5rem;
+  --space-lg: 3rem;
+
+  --radius: 1rem;
+  --transition: 0.25s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           oklch(0.19 0.02 265);
+    --surface:      oklch(0.24 0.028 265);
+    --text:         oklch(0.95 0.012 265);
+    --text-muted:   oklch(0.72 0.02 265);
+    --border:       oklch(0.32 0.03 265);
+    --accent:       oklch(0.72 0.16 280);
+    --accent-hover: oklch(0.80 0.15 280);
+    --on-accent:    oklch(0.20 0.04 280);
+    --shadow:       oklch(0 0 0 / 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:           oklch(0.19 0.02 265);
+  --surface:      oklch(0.24 0.028 265);
+  --text:         oklch(0.95 0.012 265);
+  --text-muted:   oklch(0.72 0.02 265);
+  --border:       oklch(0.32 0.03 265);
+  --accent:       oklch(0.72 0.16 280);
+  --accent-hover: oklch(0.80 0.15 280);
+  --on-accent:    oklch(0.20 0.04 280);
+  --shadow:       oklch(0 0 0 / 0.45);
+}
+
+/* --- reset: structural/font-trim resets ------------------------------------ */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+  }
+}
+
+/* --- base: default element styles ------------------------------------------ */
+@layer base {
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background-color: var(--bg);
+  }
+
+  /* The <use> sprite host is a definitions block, never rendered itself. */
+  .icon-defs {
+    display: none;
+  }
+}
+
+/* --- layout: page frame (header, nav, main, aside, footer) -----------------
+   Archetype A: left nav rail, top header, central main workspace,
+   right context-drawer aside, full-width footer status bar.
+   minmax() on the nav/aside tracks stops them collapsing toward zero width
+   under grid's default min-width:auto — without it, a narrow viewport keeps
+   shrinking the tracks past readability and forces a horizontal scrollbar. */
+@layer layout {
+  .dashboard {
+    display: grid;
+    grid-template-columns: minmax(4rem, 14rem) minmax(0, 1fr) minmax(14rem, 20rem);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "header header header"
+      "nav    main    aside"
+      "footer footer footer";
+    gap: var(--space-md);
+    padding-block: var(--space-md);
+    padding-inline: var(--space-md);
+    min-block-size: 100dvh;
+    background-color: var(--bg);
+
+    /* KEPT deliberately: this is page-frame reflow, not component styling.
+       Whether the whole dashboard is a three-column desk or a single stacked
+       column is a property of the screen, so the viewport is the right thing
+       to ask. Every rule below this point asks a container instead. */
+    @media (max-width: 60rem) {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto auto;
+      grid-template-areas:
+        "header"
+        "nav"
+        "main"
+        "aside"
+        "footer";
+    }
+
+    .dashboard__header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      padding-block: var(--space-sm);
+      padding-inline: var(--space-md);
+      background-color: var(--surface);
+      border-block-end: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .dashboard__nav {
+      grid-area: nav;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      padding-block: var(--space-md);
+      padding-inline: var(--space-md);
+      overflow-block: auto;
+      background-color: var(--surface);
+      border-radius: var(--radius);
+    }
+
+    /* CONTAINER CONTEXT #1 — the main workspace.
+       The content grid inside asks this element how many columns it can
+       afford. Note the frame above may hand this element MORE width at a
+       narrow viewport (stacked frame = full-bleed main) than at a medium
+       one — the grid follows the slot, which is the whole point. */
+    .dashboard__main {
+      grid-area: main;
+      container: main-slot / inline-size;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      padding-block: var(--space-md);
+      padding-inline: var(--space-md);
+      overflow-block: auto;
+      background-color: var(--bg);
+      border-radius: var(--radius);
+    }
+
+    .dashboard__aside {
+      grid-area: aside;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      padding-block: var(--space-md);
+      padding-inline: var(--space-md);
+      overflow-block: auto;
+      background-color: var(--surface);
+      border-radius: var(--radius);
+    }
+
+    .dashboard__footer {
+      grid-area: footer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-block: var(--space-sm);
+      padding-inline: var(--space-md);
+      background-color: var(--surface);
+      border-block-start: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+  }
+}
+
+/* --- components: content grid, cards, and standalone widgets --------------- */
+@layer components {
+  .zone-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  /* Track count is now a question for .dashboard__main, not the window.
+     Default is the narrow case (single column) and the query widens it —
+     progressive enhancement in the same direction as mobile-first. */
+  .content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(8rem, auto);
+    grid-auto-flow: dense;
+    gap: var(--space-sm);
+  }
+
+  @container main-slot (min-width: 560px) {
+    .content-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container main-slot (min-width: 840px) {
+    .content-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* CONTAINER CONTEXT #2 — one per card slot.
+     A card is a grid item, and an element cannot query itself, so each card
+     gets a slot wrapper to measure. The slot carries the grid placement;
+     the card just fills whatever the slot turned out to be. */
+  .card-slot {
+    container: card-slot / inline-size;
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  /* Hero spans grow with the main slot: full-width banner once there are two
+     columns, then the original 2x2 block once there are three. */
+  @container main-slot (min-width: 560px) {
+    .card-slot--hero,
+    .card-slot--wide {
+      grid-column: span 2;
+    }
+  }
+
+  @container main-slot (min-width: 840px) {
+    .card-slot--hero {
+      grid-row: span 2;
+    }
+  }
+
+  /* --- The multi-layout test component ------------------------------------
+     Default = narrow: visual on top, text beneath. Padding and the icon tile
+     are sized in cqi (the logical-axis form of cqw), so a card's internal
+     rhythm scales with its own slot rather than the page. */
+  .content-card {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: clamp(0.5rem, 2.5cqi, var(--space-sm));
+    padding: clamp(var(--space-sm), 3cqi, var(--space-md));
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 28px -18px var(--shadow);
+    transition: transform var(--transition), box-shadow var(--transition);
+
+    &:hover {
+      transform: translateY(-0.2rem);
+      box-shadow: 0 16px 32px -16px var(--shadow);
+    }
+
+    /* Both dimensions come from one --tile token rather than aspect-ratio:
+       as a flex item this box has min-block-size: auto, so a ratio-derived
+       height would lose to the SVG's own min-content height. Two definite
+       sides also give the icon's percentages something to resolve against. */
+    .content-card__visual {
+      --tile: clamp(2.25rem, 9cqi, 3.5rem);
+      flex: none;
+      display: grid;
+      place-items: center;
+      inline-size: var(--tile);
+      block-size: var(--tile);
+      color: var(--accent);
+      background-color: color-mix(in oklch, var(--accent) 12%, var(--surface));
+      border-radius: calc(var(--radius) * 0.6);
+    }
+
+    .content-card__icon {
+      display: block;
+      inline-size: 58%;
+      block-size: 58%;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .content-card__text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      min-inline-size: 0;
+    }
+
+    .content-card__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .content-card__heading {
+      /* container-relative type: the same card reads larger in a wide slot */
+      font-size: clamp(1.05rem, 0.95rem + 1.2cqi, 1.4rem);
+    }
+
+    .content-card__body {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    &.content-card--hero {
+      justify-content: center;
+      color: var(--on-accent);
+      background-color: var(--accent);
+      border-color: var(--accent-hover);
+
+      .content-card__visual {
+        color: var(--on-accent);
+        background-color: oklch(1 0 0 / 0.16);
+      }
+
+      .content-card__label {
+        color: var(--on-accent);
+        opacity: 0.75;
+      }
+
+      .content-card__heading {
+        font-size: clamp(1.3rem, 1.05rem + 1.6cqi, 1.75rem);
+      }
+
+      .content-card__body {
+        color: var(--on-accent);
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+    }
+  }
+
+  /* THE ONE RULE THAT REPLACED THE MEDIA QUERIES.
+     Slot wider than 500px -> visual left, text right. Under it, the default
+     stacked layout above stands. Identical markup in the main grid's hero
+     slot and in the narrow aside resolves differently, at the same instant,
+     on the same screen. */
+  @container card-slot (min-width: 500px) {
+    .content-card {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-md);
+
+      .content-card__visual {
+        --tile: clamp(3rem, 7cqi, 4.5rem);
+      }
+
+      .content-card__text {
+        flex: 1 1 auto;
+      }
+    }
+  }
+}
+
+/* --- Respect reduced-motion (unlayered: always wins over layered rules) --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}
